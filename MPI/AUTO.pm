@@ -260,6 +260,7 @@ sub run
         
     [ GRPS, '',                      'X11 options',                                                                                      ],
     [ ARGS, 'x11-display',           'Display for X11 applications',                               0,                         '',   '=', ],
+    [ ARGS, 'x11-direct',            'X11 without ssh proxy',                                      0,                         '',   '=', ],
     [ BOOL, 'x11-proxy',             'Setup X11 proxy',                                            0,                          0,    '', ],
     [ ARGS, 'x11-f-proxy',           'Forward proxy list for X11',                                 0,                         [],   '=', ],
     [ ARGS, 'x11-b-proxy',           'Backward proxy list for X11',                                0,                         [],   '=', ],

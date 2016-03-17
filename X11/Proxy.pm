@@ -54,6 +54,13 @@ sub start
     {
       ($rhost, $sn) = ($DISPLAY, '0');
     }
+
+  if ($self->{direct})
+    {
+      return "$rhost:$sn";
+    }
+
+
   if ($self->{user}) 
     {
       $rhost = "$self->{user}\@$rhost";
@@ -114,6 +121,7 @@ EOF
     @sshb, "DISPLAY=:$sn @sshf \"$f_ssh\""
   );
   
+
   (my $pid = fork ()) or exec (@cmd);
   
   while (! -f $f_env)
@@ -154,6 +162,9 @@ EOF
 sub stop
 {
   my ($self) = @_;
+
+  return if ($self->{direct});
+
   my $DISPLAY = $self->{display};
   
   my $prefix = &prefix ($DISPLAY);
@@ -197,6 +208,7 @@ sub parse_opts
     [ 'start',                 'Start proxy',                                                0, undef            ],
     [ 'stop',                  'Stop proxy',                                                 0, undef            ],
     [ 'help',                  'Show help message',                                          0, undef            ],
+    [ 'direct',                'Direct X11 connection (no ssh proxy)',                       0, undef            ],
   );
   
   my $help = sub 

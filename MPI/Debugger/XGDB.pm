@@ -46,6 +46,7 @@ EOF
 
   my @cmd = ($mpirun, $np->{opt}, $np->{val}, @$mpiargs, $path, 
              $opts->{'x11-display'} ? ('--display' => $opts->{'x11-display'}) : (),
+             $opts->{'x11-direct'}  ? ('--direct') : (),
              @{$opts->{'x11-f-proxy'}||[]} ? ('--f-proxy' => @{$opts->{'x11-f-proxy'}}) : (),
              @{$opts->{'x11-b-proxy'}||[]} ? ('--b-proxy' => @{$opts->{'x11-b-proxy'}}) : (),
              '--', '--mpirank', $mpirank, @opts, '--', $bin, @$args);
