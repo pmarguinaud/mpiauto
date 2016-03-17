@@ -1,0 +1,74 @@
+#!/usr/bin/perl -w
+
+use strict;
+use FindBin qw ($Bin);
+use lib $Bin;
+use Getopt::Long;
+use Sys::Hostname;
+use Data::Dumper;
+
+my %opts = (export => {}, exec => {});
+
+&GetOptions (
+              verbose     => \$opts{verbose}, 
+              stdeo       => \$opts{stdeo}, 
+              'env=s'     => \$opts{env}, 
+              'exec=s%'   => $opts{exec},
+            );
+
+my $MPIRANK = $ENV{$ENV{MPIAUTORANK}};
+
+$ENV{MPIAUTOWRAP} = 1;
+
+if ($opts{stdeo})
+  {
+    $ENV{MPIAUTOWRAPSTDEO} = 1;
+    open (STDOUT, ">stdeo.$MPIRANK");
+    open (STDERR, '>&', STDOUT);
+  }
+else
+  {
+    open (STDOUT, ">stdout.$MPIRANK");
+    open (STDERR, ">stderr.$MPIRANK");
+  }
+
+if ($opts{env})
+  {
+    my $env = do ($opts{env});
+    while (my ($key, $val) = each (%$env))
+      {
+        $ENV{$key} = $val;
+      } 
+  }
+
+if ($opts{verbose})
+  {
+    print &hostname (), "\n";
+    print &Dumper (\%ENV);
+  }
+
+if (%{ $opts{exec} })
+  {
+    while (my ($rank, $exec) = each (%{ $opts{exec} }))
+      {
+        my ($rank1, $rank2) = ($rank =~ m/^(\d+)-(\d+)$/o);
+        for ($rank1, $rank2)
+          {
+            $_ = $rank unless (defined ($_));
+          }
+        if (($rank1 <= $MPIRANK) && ($MPIRANK <= $rank2))
+          {
+            $exec = do ($exec);
+            $ENV{OMP_NUM_THREADS} = $exec->{openmp};
+            my @exec = ($exec->{bin}, @{ $exec->{args} });
+            exec (@exec)
+              or die ("Cannot exec @exec\n");
+          }
+      }
+  }
+else
+  {
+    exec (@ARGV) or die ("Cannot exec @ARGV\n");
+  }
+
+

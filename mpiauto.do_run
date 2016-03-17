@@ -1,0 +1,31 @@
+#!/usr/bin/perl -w
+
+use strict;
+use Storable;
+use Data::Dumper;
+use FindBin qw ($Bin);
+use lib $Bin;
+use MPI::AUTO;
+
+my $ctx = &Storable::retrieve ($ARGV[0]);
+
+
+my ($mpi, $args, $mods) = @$ctx;
+
+for (@$mods)
+  {
+    eval "use $_";
+    $@ && die ($@);
+  }
+
+# Ressources have been allocated; remove mpi-alloc
+
+my $opts = $args->[0];
+delete $opts->{'mpi-alloc'};
+
+my $c = $mpi->do_run (@$args);
+
+exit (! $c);
+
+
+

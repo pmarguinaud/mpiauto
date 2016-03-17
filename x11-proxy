@@ -1,0 +1,21 @@
+#!/usr/bin/perl -w
+
+use strict;
+use FindBin qw ($Bin);
+use lib $Bin;
+use X11::Proxy;
+
+my $opts = 'X11::Proxy'->parse_opts (\@ARGV);
+
+my $x11 = 'X11::Proxy'->new (%$opts);
+
+if (delete $opts->{start})
+  {
+    $x11->start ();
+  }
+elsif (delete $opts->{stop})
+  {
+    $x11->stop ();
+  }
+
+

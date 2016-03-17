@@ -1,0 +1,164 @@
+DDT Config File
+
+[version]
+version = 34
+
+[appearance]
+family = Sans Serif
+output viewer uses fixed width font = yes
+override font = no
+size = 9
+style = Default
+
+[attach]
+hide forked children = yes
+use launchmon if detected = no
+
+[checkpointing]
+provider = GDB
+
+[cpc]
+align stack frames = yes
+
+[default breakpoints]
+abort = yes
+catch = no
+cuda kernel launch = yes
+exec = no
+exit = no
+fork = no
+throw = no
+
+[directories]
+
+[editor]
+external = 
+lint enabled = yes
+tab size = 8
+
+[fonts]
+antialias = yes
+family = Monospace
+size = 10
+
+[groups]
+create root and workers groups = no
+filename = 
+
+[install]
+icon = no
+
+[licensing]
+last licence expiry check date = 2013-01-24
+
+[memory debugging]
+backtraces = yes
+cuda memcheck = no
+custom allocators = 
+enabled = no
+guard pages = 
+interval = -1
+preload = dmalloc
+setting = low
+subset = *
+
+[messages]
+default breakpoints = yes
+fatal signals = yes
+memory debugging errors = yes
+outdated source file = yes
+show cppcheck timeout = yes
+show cuda step time warning = yes
+signals = yes
+user defined breakpoints = yes
+watchpoints = yes
+
+[mpi]
+auto detect = no
+type = intel-mpi
+
+[node info]
+ddt debugger version = 3.2.1-26802
+node os = bullx Linux Server release 6.2 (V1) 
+
+[parallel stack view]
+preferred mode = 1
+show threads = no
+
+[queue]
+cancel = 
+display = 
+job regexp = 
+procs_per_node = 1
+submit = 
+submit scalar = no
+template file = 
+use num_nodes = no
+use queue = no
+
+[recently used arguments]
+
+[recently used executables]
+
+[recently used find in files]
+
+[recently used gdbserver hosts]
+
+[recently used input files]
+
+[recently used mpi arguments]
+
+[recently used working directories]
+
+[remote launch]
+enabled = no
+hostname = 
+path = 
+
+[startup]
+application name = __APPLICATION_NAME__
+arguments = __ARGUMENTS__
+core file = 
+cuda enabled = no
+gdbserver host = 
+gdbserver port = 10000
+input file = 
+max debuggers per node = 128
+mpi arguments = __MPI_ARGUMENTS__
+mpi enabled = yes
+mpi environment variables = 
+mpirun = __MPIRUN__
+openmp enabled = yes
+override mpirun = yes
+plugins = 
+quick restart = yes
+shared directory = ~
+solib-search-path = 
+sys-root = 
+use findarch = no
+use session cookies = yes
+use shared symbol cache = no
+working directory = 
+
+[thread manager]
+hide threads = HideOpenMPControl
+
+[variables]
+show control flow statement variables = no
+sort members alphabetically = no
+
+[visit]
+visit backend command = 
+visit capture domains = no
+visit enabled = no
+visit launch args = 
+visit launch command = /path/to/visit2.4.0/bin/visit
+visit launch small = yes
+visit preload libsim = no
+visit use hw accel = no
+
+[window layout]
+current line variables name width = 170
+layout = 
+local variables name width = 170
+size = 

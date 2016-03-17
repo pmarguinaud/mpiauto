@@ -1,0 +1,326 @@
+#!/usr/bin/perl -w
+#
+
+
+=head1 NAME 
+
+mpiauto
+
+=head1 SYNOPSIS
+
+  mpiauto -np 4 -nnp 2 -- ./MASTERODB -c001 -ft1 -asli ...
+
+=head1 DESCRIPTION
+
+C<mpiauto> is a wrapper for lauching MPI executables. It is able to select the 
+right mpirun by inspecting the environment and the binary passed as argument.
+
+C<mpiauto> has a lot of options and features (try C<mpiauto --help> for a complete
+list). In particular, C<mpiauto> is able to:
+
+=over 4
+
+=item + Use a wrapper and separate different stdout/stderr.
+
+=item + Start the debugger.
+
+=item + Set-up a X11 proxy for jobs running on a private network.
+
+=item + Use the C<srun> command from SLURM in place of the regular C<mpirun>
+launcher.
+
+=item + Bind tasks and threads.
+
+=item + Load external configuration files.
+
+=back
+
+=head1 RUNNING WITH MPIAUTO
+
+C<mpiauto> is invoked as follows :
+
+  mpiauto -np 4 -nnp 2 -- ./MASTERODB -c001 -ft1 -asli ...
+
+Note the C<--> preceding the executable name.
+
+If run with the C<--verbose> option, then C<mpiauto> will tell :
+
+=over 4
+
+=item + which MPI class was selected
+
+=item + which configuration files were selected
+
+=item + the values of options used
+
+=item + the actual MPI command issued
+
+=back
+
+=head1 CONFIGURATION
+
+Before parsing command line options, C<mpiauto> will attempt to set its defaults 
+from configuration files.  These configuration files are search and processed in
+and order taking into account inheritance, user preferences, local settings,
+and MPI versions.
+
+For instance, assuming IntelMPI::Slurm (which derives from Slurm) is selected,
+SLURM version being 2.4.3, the following files are searched and loaded (!) :
+
+=over 4
+
+=item + F<$MPIAUTO_PREFIX/mpiauto.conf>
+
+=item + F<$HOME/.mpiautorc/mpiauto.conf>
+
+=item + F<$MPIAUTO_PREFIX/mpiauto.$MPIHOST.conf>
+
+=item + F<$HOME/.mpiautorc/mpiauto.$MPIHOST.conf>
+
+=item + F<$MPIAUTO_PREFIX/mpiauto.Slurm.conf>
+
+=item + F<$MPIAUTO_PREFIX/mpiauto.Slurm.2.conf>
+
+=item + F<$MPIAUTO_PREFIX/mpiauto.Slurm.2.4.conf>
+
+=item + F<$MPIAUTO_PREFIX/mpiauto.Slurm.2.4.3.conf>
+
+=item + F<$HOME/.mpiautorc/mpiauto.Slurm.conf>
+
+=item + F<$HOME/.mpiautorc/mpiauto.Slurm.2.conf>
+
+=item + F<$HOME/.mpiautorc/mpiauto.Slurm.2.4.conf>
+
+=item + F<$HOME/.mpiautorc/mpiauto.Slurm.2.4.3.conf>
+
+=item + F<$MPIAUTO_PREFIX/mpiauto.$MPIHOST.Slurm.conf>
+
+=item + F<$MPIAUTO_PREFIX/mpiauto.$MPIHOST.Slurm.2.conf>
+
+=item + F<$MPIAUTO_PREFIX/mpiauto.$MPIHOST.Slurm.2.4.conf>
+
+=item + F<$MPIAUTO_PREFIX/mpiauto.$MPIHOST.Slurm.2.4.3.conf>
+
+=item + F<$HOME/.mpiautorc/mpiauto.$MPIHOST.Slurm.conf>
+
+=item + F<$HOME/.mpiautorc/mpiauto.$MPIHOST.Slurm.2.conf>
+
+=item + F<$HOME/.mpiautorc/mpiauto.$MPIHOST.Slurm.2.4.conf>
+
+=item + F<$HOME/.mpiautorc/mpiauto.$MPIHOST.Slurm.2.4.3.conf>
+
+=item + F<$MPIAUTO_PREFIX/mpiauto.IntelMPI::Slurm.conf>
+
+=item + F<$MPIAUTO_PREFIX/mpiauto.IntelMPI::Slurm.2.conf>
+
+=item + F<$MPIAUTO_PREFIX/mpiauto.IntelMPI::Slurm.2.4.conf>
+
+=item + F<$MPIAUTO_PREFIX/mpiauto.IntelMPI::Slurm.2.4.3.conf>
+
+=item + F<$HOME/.mpiautorc/mpiauto.IntelMPI::Slurm.conf>
+
+=item + F<$HOME/.mpiautorc/mpiauto.IntelMPI::Slurm.2.conf>
+
+=item + F<$HOME/.mpiautorc/mpiauto.IntelMPI::Slurm.2.4.conf>
+
+=item + F<$HOME/.mpiautorc/mpiauto.IntelMPI::Slurm.2.4.3.conf>
+
+=item + F<$MPIAUTO_PREFIX/mpiauto.$MPIHOST.IntelMPI::Slurm.conf>
+
+=item + F<$MPIAUTO_PREFIX/mpiauto.$MPIHOST.IntelMPI::Slurm.2.conf>
+
+=item + F<$MPIAUTO_PREFIX/mpiauto.$MPIHOST.IntelMPI::Slurm.2.4.conf>
+
+=item + F<$MPIAUTO_PREFIX/mpiauto.$MPIHOST.IntelMPI::Slurm.2.4.3.conf>
+
+=item + F<$HOME/.mpiautorc/mpiauto.$MPIHOST.IntelMPI::Slurm.conf>
+
+=item + F<$HOME/.mpiautorc/mpiauto.$MPIHOST.IntelMPI::Slurm.2.conf>
+
+=item + F<$HOME/.mpiautorc/mpiauto.$MPIHOST.IntelMPI::Slurm.2.4.conf>
+
+=item + F<$HOME/.mpiautorc/mpiauto.$MPIHOST.IntelMPI::Slurm.2.4.3.conf>
+
+=back
+
+C<$MPIHOST> being the name of the local machine, if specified using the C<-host> option.
+
+It is also possible to specify an extra configuration file, loaded after all
+aforementionned files; this file is specified using the C<-config> option,
+or the C<MPIAUTOCONFIG> environment variable.
+
+=head1 USING A WRAPPER
+
+It is possible to specify a MPI wrapper script of your own, using the option C<--prefix-command>;
+the MPI executable will not be invoked directory, but through your wrapper script.
+
+C<mpiauto> has its own wrapper script, called C<mpiautowrap>; this wrapper is used when
+the option C<--wrap> is used. stdout and stderr of each MPI process are then saved in
+separate files whose name is derived from the following format : C<$STDEO.$MPIRANK>.
+It is possible to specify another format using the C<--wrap-output-format> option.
+
+The C<mpiautowrap> script may be turned verbose, using the C<--wrap-verbose> option.
+
+=head1 USING OR NOT USING SRUN
+
+C<srun> is the builtin launcher of SLURM. It is invoked automatically when possible (option
+C<--use-slurm-mpi>), but may be disabled using C<--nouse-slurm-mpi>; traditional C<mpirun> is
+then used.
+
+=head1 USING A GRAPHICAL DEBUGGER
+
+
+=head2 PREPARATIONS
+
+In order to use a graphical debugger such as DDT (which is the only debugger 
+currently supported), it may be necessary to set up a X11 proxy over ssh if
+the compute nodes are accessible only through a private network.
+
+For that purpose, it is required that ssh keys have been exchanged between
+login nodes and your PC. 
+
+For instance, on the login nodes :
+
+    [marguina@login0 ~]$ ssh-copy-id -i ~/.ssh/id_dsa.pub marguina@lxgmap33.cnrm.meteo.fr
+
+and on the PC : 
+
+    [marguina@lxgmap33 ~]$ ssh-copy-id -i ~/.ssh/id_dsa.pub marguina@prefix.meteo.fr
+
+ssh keys are generated with C<ssh-keygen>; use an empty password, as connections will
+have to be set-up automatically.
+
+=head2 INVOKE THE DEBUGGER
+
+Then you may need to specify the following options; beware that your login may be different
+on your PC and on login0 :
+
+=over 4
+
+=item + C<--x11-f-proxy  marguina@prefix.meteo.fr>
+
+=item + C<--x11-b-proxy  marguina@login0>
+
+=item + C<--x11-display  marguina@lxgmap33.cnrm.meteo.fr:1>
+
+=back
+
+I put these options in C<$HOME/.mpiautorc/mpiauto.DDT.conf>, and set the C<MPIAUTOCONFIG>
+environment variable accordinly.
+
+    [marguina@login0 ~]$ cat ~/.mpiautorc/mpiauto.DDT.conf 
+    {
+      opts => 
+        {
+          'x11-f-proxy'        => [ '=', ['marguina@prefix.meteo.fr'] ],
+          'x11-b-proxy'        => [ '=', ['marguina@login0'] ],
+          'debug'              => [ '=', 1 ],
+          'x11-display'        => [ '=', 'marguina@lxgmap33.cnrm.meteo.fr:1' ],
+        },
+    }
+
+The following sets of lines should then be equivalent :
+
+=over 4
+
+=item +
+
+    export MPIAUTOCONFIG=mpiauto.DDT.conf
+    mpiauto -nnp 2 -nn 2 -- ./MASTERODB -eFCST -c001 -maladin -vmeteo -asli -t60 -ft10
+
+=item +
+
+    mpiauto --config mpiauto.DDT.conf -nnp 2 -nn 2 \
+      -- ./MASTERODB -eFCST -c001 -maladin -vmeteo -asli -t60 -ft10
+
+=item +
+
+    mpiauto --debug \
+      --x11-f-proxy marguina@prefix.meteo.fr          \
+      --x11-b-proxy marguina@login0                   \
+      --x11-display marguina@lxgmap33.cnrm.meteo.fr:1 \
+      -nnp 2 -nn 2 -- ./MASTERODB -eFCST -c001 -maladin -vmeteo -asli -t60 -ft10
+
+=back
+
+Note the display may contain your login name on your PC, if
+different from your login name on login0.
+
+=head1 BINDING
+
+There are several ways of binding MPI tasks and OpenMP threads :
+
+=over 4
+
+=item + C<--use-arch-bind> : a text file is created containing indications
+on how threads and tasks should be bound. This works only on Linux, 
+and the user has to call the function linux_bind after initializing MPI
+in his code.
+
+=item + C<--use-slurm-bind> : cpu masks are generated and passed to C<srun>;
+works only with Linux.
+
+=item + C<--use-openmpi-bind> : let OpenMPI handle the binding; it seems to 
+work almost by itself.
+
+=back
+
+=head1 NOTE TO GMKPACK USERS
+
+For now, gmkpack compiles all source code in a temporary directory; all
+files from pack directories are copied to this temporary directory.
+DDT is then unable to find the real location of source code from debugging
+info stored in the executable. 
+A workaround is to include the pack location in the executable and generate
+a valid DDT session. This is the purpose of the C<gmkpack-make-ddt-session>
+script, which scans all libraries, and patch executables.
+
+=head1 TESTED ENVIRONMENTS
+
+=over 4
+
+=item + NECSX
+
+=item + BullXMPI
+
+=item + BullXMPI/Slurm (using srun)
+
+=item + IntelMPI
+
+=item + IntelMPI/Slurm (using srun)
+
+=item + OpenMPI
+
+=back
+
+=head1 HISTORY
+
+=over 4
+
+=item + 20/02/2013 First release.
+
+=back
+
+=head1 AUTHOR
+
+philippe.marguinaud@meteo.fr
+
+=cut
+
+local $SIG{__DIE__} = sub { use Carp qw (cluck); cluck (@_) unless ($_[0] =~ m/\n$/oms) };
+
+use FindBin qw ($Bin);
+use lib $Bin;
+
+use MPI::AUTO;
+
+use strict;
+
+my $mpiauto = 'MPI::AUTO'->new ();
+
+my $c = $mpiauto->run (@ARGV);
+
+exit (1)
+  unless ($c);
+
+

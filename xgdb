@@ -1,0 +1,65 @@
+#!/usr/bin/perl -w
+
+use FindBin qw ($Bin);
+use lib $Bin;
+use Getopt::Long;
+use File::Path;
+use FileHandle;
+use X11::Proxy;
+use Cwd;
+use File::Temp;
+use Data::Dumper;
+
+use strict;
+
+my $x11_opts = 'X11::Proxy'->parse_opts (\@ARGV);
+
+my %gdb_opts = ('mpirank-only' => []);
+
+&Getopt::Long::GetOptions (
+   'mpirank=s'       => \$gdb_opts{mpirank},
+   'mpirank-only=s@' => \$gdb_opts{'mpirank-only'},
+);
+
+my $mpirank = $ENV{$gdb_opts{mpirank}};
+
+my $xgdb_on;
+
+if (@{ $gdb_opts{'mpirank-only'} })
+  {
+    $xgdb_on = grep { $mpirank == $_ } @{ $gdb_opts{'mpirank-only'} };
+  }
+else
+  {
+    $xgdb_on = 1;
+  }
+
+if ($xgdb_on)
+  {
+    my ($cwd, $x11, $dir) = (&cwd ());
+    
+    if ($x11_opts->{display})
+      {
+        $dir = 'File::Temp'->newdir ('.xgdbXXXXX', DIR => $cwd);
+        chdir ($dir);
+        $x11 = 'X11::Proxy'->new (%$x11_opts);
+        $x11->start ();
+        chdir ($cwd);
+      }
+    
+    system ("$Bin/xterm", '-title', sprintf ('#%6.6d', $mpirank), '-e', 'gdb', '-x', '.start.gdb');
+    
+    if ($x11)
+      {
+        chdir ($dir);
+        $x11->stop ();
+        chdir ($cwd);
+      }
+  }
+else
+  {
+    system ("@ARGV");
+  }
+
+exit (0);
+
