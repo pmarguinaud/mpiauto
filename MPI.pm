@@ -351,6 +351,11 @@ sub do_run
       @cmd = ($self->{mpirun}, $np->{opt}, $np->{val}, @mpiargs, @{$opts->{'prefix-command'}}, $bin, @$args, $self->mpmd_extra_args ());
     }
 
+  if ($opts->{'mpi-stdin-null'})
+    {
+      push @cmd, "< /dev/null";
+    }
+
   if (@{ $opts->{'prefix-mpirun'} })
     {
       unshift (@cmd, @{ $opts->{'prefix-mpirun'} });

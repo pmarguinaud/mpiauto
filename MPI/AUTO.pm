@@ -243,6 +243,7 @@ sub run
                                       used',                                                       0,                         {},  '+=', ], 
     [ BOOL, 'use-mpi-machinefile',   'Generate machine file and use it',                           0,                          0,    '', ],  
            
+    [ BOOL, 'mpi-stdin-null',        'Connect mpirun stdin to /dev/null',                          0,                          0,    '', ], 
     [ BOOL, 'use-session',           'Allow mpiauto session mechanism',                            0,                          0,    '', ], 
     [ ARGS, 'init-timeout',          'Set a timeout on MPI_INIT',                                  0,                          0,   '=', ], 
     [ ARGS, 'init-timeout-restart',  'Number of times to restart after a MPI_INIT timeout',        0,                          0,   '=', ], 
