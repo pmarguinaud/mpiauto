@@ -369,6 +369,16 @@ sub run
 
   if ($opts->{verbose})
     {
+      use FindBin qw ($Bin);
+
+      my $show_version = "$Bin/.git/refs/heads/show_version";
+      if (-f "$show_version")
+        {
+          my $version = do { my $fh = 'FileHandle'->new ("<$show_version"); local $/ = undef; <$fh> };
+          chomp ($version);
+          printf($MPI::FMT1, 'Version', $version);
+        }
+
       printf($MPI::FMT1, 'Arch', $arch);
       printf($MPI::FMT1, 'Scheduler', $schd);
       printf($MPI::FMT1, 'MPI', $mpiclass);
