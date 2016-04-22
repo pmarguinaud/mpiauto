@@ -2,6 +2,7 @@ package MPI::AUTO;
 
 use Data::Dumper;
 use FileHandle;
+use FindBin qw ($Bin);
 
 use Env::Tmp;
 use ARCH;
@@ -218,6 +219,7 @@ sub run
                                       with this flag, we try to have extra tasks running
                                       on a single node',                                           0,                          0,    '', ], 
     [ BOOL, 'serial',                'Run binary as a serial executable',                          0,                          0,    '', ], 
+    [ BOOL, 'serial-mpi',            'Binary is a serial executable, but launched by mpirun',      0,                          0,    '', ], 
 
     [ GRPS, '',                      'Help and test options',                                                                            ],
     [ BOOL, 'dryrun',                'Do all usual processing, but do not call mpirun',            0,                          0,    '', ], 
@@ -346,6 +348,12 @@ sub run
 
       
       $bin or $goc->help ();
+
+      if ($opts->{'serial-mpi'})
+        {
+          unshift (@args, $bin);
+          $bin = "$Bin/bin/mpilaunch.x";
+        }
       
       $arch ||= 'ARCH'->class (bin => $bin);
       $schd ||= 'Scheduler'->class (opts => $opts);

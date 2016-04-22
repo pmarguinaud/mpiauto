@@ -3,6 +3,11 @@ package MPI::Serial;
 use base qw (MPI);
 use strict;
 
+sub mpirank_variable_name
+{
+  'MPIRANK';
+}
+
 sub mpirun_options
 {
   my $self = shift;
@@ -24,6 +29,5 @@ sub mpirun
 
   return '';
 }
-
 
 1;

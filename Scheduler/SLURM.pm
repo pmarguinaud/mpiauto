@@ -253,7 +253,7 @@ sub cleanup_env
 
   my ($opts) = @args{qw (opts)};
 
-  if ((! $opts->{'use-slurm-mpi'}) && $opts->{'use-session'})
+  if ($opts->{'use-session'})
     {
       $class->free_used_nodes ();
     }

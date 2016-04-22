@@ -20,7 +20,7 @@ sub new
 sub class
 {
   my ($class, %args) = @_;
-  my ($opts, $bin, $arch, $schd, $mpmd) = @args{qw (opts bin arch schd mpmd)};
+  my ($opts, $bin, $args, $arch, $schd, $mpmd) = @args{qw (opts bin args arch schd mpmd)};
 
   my ($mpirun, $version);
 
@@ -48,9 +48,15 @@ sub class
     }
 }
 
+sub spawn_mpi
+{
+  my ($self, %args) = @_;
+  $self->spawn (%args);
+}
+
 sub spawn
 {
-  my %args = @_;
+  my ($self, %args) = @_;
 
   my ($cmd, $pid)  = @args{qw (cmd pid)};
 
@@ -275,7 +281,7 @@ sub do_run
       printf($MPI::FMT1, 'Alloc command', $cmd)
         if ($opts->{verbose});
 
-      return &spawn (cmd => $cmd, pid => \$self->{cmd_pid});
+      return $self->spawn (cmd => $cmd, pid => \$self->{cmd_pid});
     }
 
 
@@ -401,7 +407,7 @@ sub do_run
         }
       else
         {
-          $c = &spawn (cmd => "@cmd", pid => \$self->{cmd_pid});
+          $c = $self->spawn_mpi (cmd => "@cmd", pid => \$self->{cmd_pid});
         }
     }
 
