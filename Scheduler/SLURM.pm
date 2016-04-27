@@ -176,6 +176,25 @@ sub nodelist
   return @nodelist;
 }
 
+sub eq
+{
+  use Storable;
+  local $Storable::canonical = 1;
+  my @s = map { &Storable::nfreeze (\$_) } @_;
+  my $eq = 1;
+  for (@s)
+    {
+      $eq &&= $s[0] eq $_;
+    }
+  return $eq;
+}
+
+sub stringify
+{
+  my ($h, $k) = @_;
+  return defined $h->{$k} ? $h->{$k} : 'undef';
+}
+
 sub setup_env
 {
   my ($class, %args) = @_;
@@ -195,9 +214,13 @@ sub setup_env
 
   my (%env1, %env2);
   my @var = qw (SLURM_NTASKS SLURM_NPROCS SLURM_TASKS_PER_NODE SLURM_NNODES SLURM_NODELIST 
-                SLURM_JOB_NODELIST SLURM_JOB_NUM_NODES);
+                SLURM_JOB_NODELIST SLURM_JOB_NUM_NODES SLURM_CPUS_PER_TASK);
 
-  @env1{@var} = @ENV{@var};
+  my (%env1, %env2);
+  for my $var (grep { exists $ENV{$_} } @var)
+    {
+      $env1{$var} = $env2{$var} = $ENV{$var};
+    }
 
   $env1{SLURM_NTASKS} = $np;
   $env1{SLURM_NPROCS} = $np;
@@ -209,23 +232,15 @@ sub setup_env
       my @nodelist = $class->find_free_nodes (nn => $nn);
       $env1{SLURM_NODELIST} = $env1{SLURM_JOB_NODELIST} = $class->compact_nodelist (@nodelist);
     }
+  delete $env1{SLURM_CPUS_PER_TASK};
 
-  @env2{@var} = @ENV{@var};
 
-  for (values (%env2))
-    {
-      $_ = ''
-        if (! defined ($_));
-    }
 
-  my @env1 = map { ($_, $env1{$_}) } @var;
-  my @env2 = map { ($_, $env2{$_}) } @var;
-
-  if ("@env1" ne "@env2")
+  if (! &eq (\%env1, \%env2))
     {
       my ($var_length)  = sort { $b <=> $a } map { length ($_) } @var;
-      my ($env1_length) = sort { $b <=> $a } map { length ($_ || 'undef') } @env1{@var};
-      my ($env2_length) = sort { $b <=> $a } map { length ($_ || 'undef') } @env2{@var};
+      my ($env1_length) = sort { $b <=> $a } map { length ($_) } ('undef', @env1{grep { exists $env1{$_} } @var});
+      my ($env2_length) = sort { $b <=> $a } map { length ($_) } ('undef', @env2{grep { exists $env2{$_} } @var});
 
       $var_length++;
       $env1_length++;
@@ -237,13 +252,25 @@ sub setup_env
           for my $var (@var)
             {
               printf($MPI::FMT2, sprintf ("%-${var_length}s = %-${env2_length}s -> %-${env1_length}s\n", $var, 
-                                          $env2{$var} ne '' ? $env2{$var} : 'undef', $env1{$var}))
-                if ($env1{$var} ne $env2{$var});
+                                          &stringify (\%env2, $var), &stringify (\%env1, $var)))
+                if (! &eq ($env1{$var}, $env2{$var}));
             }
         }
      }
 
-  @ENV{@var} = @env1{@var};
+
+  for my $var (@var)
+    {
+      if (defined $env1{$var})
+        {
+          $ENV{$var} = $env1{$var};
+        }
+      else
+        {
+          delete $ENV{$var};
+        }
+    }
+
 
 }
 
