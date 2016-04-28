@@ -115,7 +115,7 @@ sub grokmpirun
   
   my $version = '';
   my $mpikind = '';
-  my $mpirun;
+  my $mpirun  = '';
 
   if (&basename ($libmpi) =~ m/^libmpich_\w+\.so$/o)
     {
@@ -132,18 +132,18 @@ sub grokmpirun
       $version = 1.0;
       goto FOUND;
     }
+  elsif (-f "$dirmpi/bin/mpirun")
+    {
+      $mpirun = "$dirmpi/bin/mpirun";
+    }
   elsif (-f "$dirmpi/../bin/mpirun")
     {
       $mpirun = "$dirmpi/../bin/mpirun";
     }
-  else
-    {
-      $mpirun = "$dirmpi/bin/mpirun";
-    }
   
   die ("Cannot find mpirun in $bin\n")
     unless (-f $mpirun);
-  
+
   $version = do
     {
       local $ENV{PATH} = &dirname ($mpirun) . ":$ENV{PATH}";
