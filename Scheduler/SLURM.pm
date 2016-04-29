@@ -212,7 +212,6 @@ sub setup_env
       $nn += $_->{nn};
     }
 
-  my (%env1, %env2);
   my @var = qw (SLURM_NTASKS SLURM_NPROCS SLURM_TASKS_PER_NODE SLURM_NNODES SLURM_NODELIST 
                 SLURM_JOB_NODELIST SLURM_JOB_NUM_NODES SLURM_CPUS_PER_TASK);
 

@@ -73,6 +73,9 @@ do
      echo "$dir/tmp/$bin/5:$?" >> $dir/tmp/test.eo
   ) > test.eo 2>&1
 
+if [ 0 -eq 1 ]
+then
+
   mkdir $dir/tmp/$bin/6
   cd $dir/tmp/$bin/6
   (
@@ -130,6 +133,8 @@ do
                                    -np 2 -- $dir/bin/$bin                          
      echo "$dir/tmp/$bin/9:$?" >> $dir/tmp/test.eo
   ) > test.eo 2>&1
+
+fi
 
   mkdir $dir/tmp/$bin/10
   cd $dir/tmp/$bin/10
