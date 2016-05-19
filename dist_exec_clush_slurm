@@ -1,0 +1,84 @@
+#!/usr/bin/perl -w
+
+use strict;
+use File::Spec;
+use File::Basename;
+use File::Path;
+
+sub spawn
+{
+  my @cmd = @_;
+  print STDERR "@cmd\n";
+  unless (system (@cmd) == 0)
+    {
+      if ($? == -1) 
+        {
+          print "Failed to execute `@cmd': $!\n";
+        }
+      elsif ($? & 127) 
+        {
+          printf ("`@cmd' died with signal %d\n", ($? & 127));
+        }
+      else 
+        {
+          printf ("`@cmd' exited with value %d\n", $? >> 8);
+        }
+      die;
+    }
+}
+
+if ($ARGV[0] eq '--copy')
+  {
+    shift;
+    my %bin = @ARGV;
+    while (my ($lbin, $tbin) = each (%bin))
+      {
+        my $tdir = &dirname ($tbin);
+        &mkpath ($tdir) or die ("Cannot create directory $tdir");
+        my @cmd = ('dd', "if=$lbin", "of=$tbin", "bs=10M");
+        &spawn (@cmd);
+        chmod (0700, $tbin);
+      }
+  }
+elsif ($ARGV[0] eq '--remove')
+  {
+    shift;
+    &rmtree (@ARGV);
+  }
+else
+  {
+
+    unless (exists ($ENV{SLURM_JOBID}) && exists ($ENV{SLURM_NODELIST}))
+      {
+        die ("SLURM_JOBID and/or SLURM_NODELIST are not defined\n");
+      }
+
+    my @args = @ARGV;
+    
+    my $tmp = "/tmp/slurm.$ENV{SLURM_JOBID}";
+    
+    my %bin;
+    
+    for my $arg (@args)
+      {
+        next unless (-f $arg);
+        next unless (-x $arg);
+        next if ('File::Spec'->file_name_is_absolute ($arg));
+        my $lbin = 'File::Spec'->rel2abs ($arg);
+        my $tbin = 'File::Spec'->rel2abs ($arg, $tmp); 
+        $arg = $bin{$lbin} = $tbin;
+      }
+    
+    if (%bin)
+      {
+        &spawn ('time', 'clush', '-w', $ENV{SLURM_NODELIST}, $0, "--copy", %bin);
+      }
+    
+    &spawn (@args);
+    
+    if (%bin)
+      {
+        &spawn ('time', 'clush', '-w', $ENV{SLURM_NODELIST}, $0, "--remove", $tmp);
+      }
+
+  }

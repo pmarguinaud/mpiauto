@@ -203,6 +203,8 @@ sub run
   my $self = shift;
 
   my $env = 'Env::Tmp'->new ();
+
+  $ENV{PATH} = "$Bin:$ENV{PATH}";
   
   my @OPTS = ( 
     [ GRPS, '',                      'Dimensions (number of nodes, tasks, etc...)',                                                      ],
