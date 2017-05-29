@@ -1,0 +1,53 @@
+#!/usr/bin/perl -w
+
+use strict;
+use File::Spec;
+use File::Basename;
+use File::Path;
+
+sub spawn
+{
+  my @cmd = @_; 
+  print STDERR "@cmd\n";
+  unless (system (@cmd) == 0)
+    {   
+      if ($? == -1) 
+        {
+          print "Failed to execute `@cmd': $!\n";
+        }
+      elsif ($? & 127) 
+        {
+          printf ("`@cmd' died with signal %d\n", ($? & 127));
+        }
+      else 
+        {
+          printf ("`@cmd' exited with value %d\n", $? >> 8); 
+        }
+      die;
+    }   
+}
+
+
+my ($sbin, @args) = @ARGV;
+    
+my $tmp = "/tmp";
+    
+my $tbin = 'File::Spec'->catfile ($tmp, &basename ($sbin));
+
+my $lock = "$tmp/lock";
+
+if (mkdir ($lock))
+  {
+    my @cmd = ('/usr/bin/time', '-f', 'real=%e', 'dd', "if=$sbin", "of=$tbin", "bs=10M");
+    &spawn (@cmd);
+    chmod (0700, $tbin);
+    rmdir ($lock);
+  }
+else
+  {
+    1 while (-d $lock);
+  }
+
+
+exec ($tbin, @args);
+
