@@ -552,12 +552,17 @@ sub wrap
       my $rank = 0;
       for (@$mpmd)
         {
-          my ($rank1, $rank2) = ($rank, $rank + $_->{np} - 1);
+          use Storable;
+          my $mpmd = &Storable::dclone ($_);
+          my @cmd = (@{ $opts->{'prefix-command'} }, $mpmd->{bin}, @{ $mpmd->{args} });
+          $mpmd->{bin} = shift (@cmd);
+          $mpmd->{args} = \@cmd;
+          my ($rank1, $rank2) = ($rank, $rank + $mpmd->{np} - 1);
           my $rankid = $rank1 == $rank2 ? $rank1 : "$rank1-$rank2";
 
           my $mpmdpl = "$dir/mpmd.$rankid.pl";
 
-          'FileHandle'->new (">$mpmdpl")->print (&Dumper ($_));
+          'FileHandle'->new (">$mpmdpl")->print (&Dumper ($mpmd));
 
           push @exec, 
             '--exec', "$rankid=$mpmdpl";

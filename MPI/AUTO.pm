@@ -77,6 +77,19 @@ sub check_nn_np_nnp
         {
           $opts->{np} = $opts->{nnp} * $opts->{nn};
         }
+      elsif (defined ($opts->{nnp}) && (defined ($opts->{np})))
+        {
+          if ($opts->{'mpi-allow-odd-dist'})
+            {
+              die ("np should be <= nn * nnp\n")
+                unless ($opts->{np} <= $opts->{nn} * $opts->{nnp});
+            }
+          else
+            {
+              die ("np should be equal to nn * nnp\n")
+                unless ($opts->{np} == $opts->{nn} * $opts->{nnp});
+            }
+        }
       else
         {
           $opts->{nnp} = 1;
@@ -105,24 +118,15 @@ sub check_nn_np_nnp
     {
       my @args = &shift_arglist ($args);
 # Number of extra tasks to run on a single node
-      my $re = 0;
-# The number of nodes does not divide the number of tasks
-      if (int ($opts->{nnp}) != $opts->{nnp})
+      my $re = $opts->{nn} * $opts->{nnp} - $opts->{np};
+      if ($opts->{nn} * $opts->{nnp} != $opts->{np})
         {
-          $re = int ($opts->{np} / $opts->{nn});
-        }
-# The number of tasks per node does divide the number of tasks
-      if (int ($opts->{nn}) != $opts->{nn})
-        {
-          $re = $opts->{np} % $opts->{nnp};
-        }
-      if ($re > 0)
-        {
+          my $np = $opts->{np};
           $opts->{nn}  = $opts->{nn} - 1;
-          $opts->{np}  = $opts->{np} - $re;
-          $opts->{nnp} = $opts->{np} / $opts->{nn};
+          $opts->{np}  = $opts->{nn} * $opts->{nnp};
+          $np = $np - $opts->{np};
           unshift (@$args, @args, '--', 
-              '-nn', 1, '-np', $re, '-openmp', $opts->{openmp}, 
+              '-nn', 1, '-np', $np, '-openmp', $opts->{openmp}, 
               '-proc', $opts->{proc}, '-distribution', $opts->{distribution}, 
               '--', $bin, @args);
         }
