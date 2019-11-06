@@ -125,7 +125,7 @@ FOUND:
 
   my $config_opt;
 
-  if ($version ge '4')
+  if (($version !~ m/^\d+/o) || ($version ge '4'))
     {
       $config_opt = '-systemconfig';
     }

@@ -221,6 +221,7 @@ sub readbin
       if ($perl)
         {
           $X =~ s/^.*?__PERL__//goms;
+          $X =~ s/\^J//goms;
           $X = eval $X;
           if ($@)
             {

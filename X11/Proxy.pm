@@ -66,11 +66,11 @@ sub start
       $rhost = "$self->{user}\@$rhost";
     }
 
-  my $lhost = &hostname ();
+  (my $lhost = &hostname ()) =~ s/\..*$//o;
   my $luser = getpwuid ($<);
 
   $lhost = "$luser\@$lhost";
-  
+
   my @proxyb = @{ $self->{'b-proxy'} };
   my @proxyf = @{ $self->{'f-proxy'} };
   
@@ -114,7 +114,7 @@ EOF
   chmod (0755, $f_ssh);
   
   my @sshb = map { ('ssh', '-x', $_) } (@proxyb, $rhost);
-  my @sshf = map { ('ssh', '-X', $_) } (@proxyf, $lhost);
+  my @sshf = map { ('ssh', -o => '"StrictHostKeyChecking=no"', '-X', $_) } (@proxyf, $lhost);
   
   my @cmd = 
   (
