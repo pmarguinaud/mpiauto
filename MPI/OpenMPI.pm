@@ -18,7 +18,7 @@ sub mpirun_cyclic_option
 
 sub mpirank_variable_name
 {
-  return ('OMPI_COMM_WORLD_RANK');
+  return ('PMI_RANK');
 }
 
 sub run

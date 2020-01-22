@@ -19,7 +19,7 @@ sub mpirun_options
   my $opts = $self->{opts};
   my @opts = ({opt => '--ntasks',          val => $opts->{np}}, 
               {opt => '--ntasks-per-node', val => $opts->{nnp}},
-              '--kill-on-bad-exit=1');
+              '--kill-on-bad-exit=1', '--export=ALL');
 
   if ($opts->{'use-slurm-bind'})
     {
