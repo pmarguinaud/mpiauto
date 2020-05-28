@@ -6,6 +6,7 @@ use lib $Bin;
 use Getopt::Long;
 use Sys::Hostname;
 use Data::Dumper;
+use FileHandle;
 
 my %opts = (export => {}, exec => {});
 
