@@ -304,7 +304,7 @@ sub do_run
             split (m/,(?=\w+=)/o, $opts->{'mpi-special-env'}{$mpikind} || '');
 
 
-  if ($opts->{verbose} && %env)
+  if (%env)
     {
        my $modf = 0;
 
@@ -312,13 +312,17 @@ sub do_run
          {
            if (defined ($ENV{$var}) && ($ENV{$var} ne $env{$var}))
              {
-               printf($MPI::FMT1, 'Warning', "$var='$ENV{$var}', but mpiauto recommends $var='$env{$var}'");
+               printf($MPI::FMT1, 'Warning', "$var='$ENV{$var}', but mpiauto recommends $var='$env{$var}'")
+                 if ($opts->{verbose});
              }
            else
              {
-               printf($MPI::FMT1, 'Remark', 'MPI environment was modified')
-                 unless ($modf++);
-               printf($MPI::FMT3, $var, "'$env{$var}'");
+               if ($opts->{verbose})
+                 {
+                   printf($MPI::FMT1, 'Remark', 'MPI environment was modified')
+                     unless ($modf++);
+                   printf($MPI::FMT3, $var, "'$env{$var}'");
+                 }
                $ENV{$var} = $env{$var};
              }
          }
