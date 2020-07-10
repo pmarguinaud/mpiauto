@@ -19,7 +19,9 @@ sub find_free_nodes
 
   my $jobid = $class->jobid ();
 
-  my $session = 'MPI::AUTO::Session'->open (jobid => $jobid);
+  my $session = $args{session} 
+              ? 'MPI::AUTO::Session'->open (jobid => $jobid) 
+              : 'MPI::AUTO::Session'->empty ();
 
   my @nn = grep { ! $session->{data}{nodes}{$_} } @nodelist;
 
@@ -225,10 +227,10 @@ sub setup_env
   $env1{SLURM_NPROCS} = $np;
   $env1{SLURM_TASKS_PER_NODE} = join (',', "$opts->{nnp}(x$opts->{nn})", map { "$_->{nnp}(x$_->{nn})" } @$mpmd);
 
-  if ($opts->{'use-session'})
+  if ($opts->{'use-session'} || $opts->{'fix-slurm-env-nodes'})
     {
       $env1{SLURM_NNODES} = $env1{SLURM_JOB_NUM_NODES} = $nn;
-      my @nodelist = $class->find_free_nodes (nn => $nn);
+      my @nodelist = $class->find_free_nodes (nn => $nn, session => $opts->{'use-session'});
       $env1{SLURM_NODELIST} = $env1{SLURM_JOB_NODELIST} = $class->compact_nodelist (@nodelist);
     }
   delete $env1{SLURM_CPUS_PER_TASK};

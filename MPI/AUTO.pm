@@ -294,6 +294,7 @@ sub run
     [ GRPS, '',                      'Slurm options',                                                                                    ],
     [ BOOL, 'use-slurm-mpi',         'Use Slurm MPI launcher when possible',                       0,                          1,    '', ],
     [ BOOL, 'fix-slurm-env',         'Fix Slurm environment',                                      0,                          1,    '', ],
+    [ BOOL, 'fix-slurm-env-nodes',   'Fix Slurm environment; set node number and list variables',  0,                          1,    '', ],
         
     [ GRPS, '',                      'Grib API options',                                                                                 ],
     [ BOOL, 'setup-grib_api-env',    'Setup grib_api environment from ldd info',                   0,                          1,    '', ],

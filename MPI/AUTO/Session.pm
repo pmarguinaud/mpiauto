@@ -6,6 +6,12 @@ use Fcntl qw (:flock);
 use Data::Dumper;
 use strict;
 
+sub empty
+{
+  my $class = shift;
+  return bless {data => {nodes => {}}}, $class;
+}
+
 sub open : method
 {
   my $class = shift;
@@ -29,6 +35,7 @@ sub open : method
 sub close : method
 {
   my $self = shift;
+  return unless ($self->{file});
 
   local $Data::Dumper::Terse  = 1;
   local $Data::Dumper::Indent = 1;
