@@ -3,6 +3,7 @@ package Scheduler::SLURM;
 use strict;
 use base qw (Scheduler);
 use MPI::AUTO::Session;
+use List::Util qw (uniq);
 
 sub jobid
 {
@@ -66,28 +67,32 @@ sub expand_nodelist
   
   my @nodelist;
   
-  if (my ($pref, $list) = ($nodelist =~ m/^(\w+)\[(.*)\]$/o))
-    {   
-      my @list = sort { $a <=> $b }
-                 map 
-                   {   
-                     my ($x, $y);
-                     if (m/^(\d+)-(\d+)$/o)
-                       {   
-                         ($x, $y) = ($1, $2);
-                       }   
-                     else
-                       {   
-                         ($x, $y) = ($_, $_);
-                       }   
-                     ($x .. $y) 
-                   }   
-                  split (m/,/o, $list);
-      @nodelist = map { "${pref}$_" } @list;
-    }   
-  elsif ($nodelist =~ m/^(\w+)$/o)
+  if ($nodelist =~ m/^([\w-]+)$/o)
     {   
       @nodelist = ($nodelist);
+    }
+  else
+    {
+      while ($nodelist =~ s/^([\w-]+)\[([^\[\]]*)\],?//o)
+        {   
+          my ($pref, $list) = ($1, $2);
+          my @list = sort { $a <=> $b }
+                     map 
+                       {   
+                         my ($x, $y);
+                         if (m/^(\d+)-(\d+)$/o)
+                           {   
+                             ($x, $y) = ($1, $2);
+                           }   
+                         else
+                           {   
+                             ($x, $y) = ($_, $_);
+                           }   
+                         ($x .. $y) 
+                       }   
+                      split (m/,/o, $list);
+          push @nodelist, map { "${pref}$_" } @list;
+        }   
     }   
 
   return @nodelist;
@@ -97,9 +102,36 @@ sub compact_nodelist
 {
   my ($class, @nodelist) = @_;
 
-  my $pref;
-  my @list = map { s/^([a-z_]+)//o; $pref ||= $1; $_ } @nodelist;
+  my (@pref, @list);
+
+  for my $node (@nodelist)
+     {
+       $node =~ m/^(\S+?)(\d+)$/o;
+       push @pref, $1;
+       push @list, $2;
+     }
   
+  my @uref = &uniq (@pref);
+
+  my @nd;
+
+  for my $pref (@uref)
+    {
+      my @i = grep { $pref[$_] eq $pref } (0 .. $#pref);
+      my @l = @list[@i];
+      push @nd, $class->compact_nodelist_pref ($pref, @l);
+    }
+
+  return join (',', @nd);
+}
+    
+
+sub compact_nodelist_pref
+{
+  my $class = shift;
+
+  my ($pref, @list) = @_;
+
   my (@L, $i, $j);
   
   my $sub = sub
@@ -146,7 +178,7 @@ sub nodelist
 
   while ($nodelist)
     {
-      $nodelist =~ s/^(\w+)//o;
+      $nodelist =~ s/^([\w-]+)//o;
       my $name = $1;
       if ($nodelist =~ s/^\[(.*?)\]//o)
         {
