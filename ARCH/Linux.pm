@@ -2,6 +2,7 @@ package ARCH::Linux;
 
 use FileHandle;
 use POSIX qw (ceil floor);
+use Data::Dumper;
 
 use strict;
 use base qw (ARCH);
@@ -168,13 +169,17 @@ if (0) {
           $mpirun = $mpiexec
             if (-f $mpiexec); 
 }
-          if ($mpirun =~ m,impi/(\d+(?:\.\d+)+)/,o)
+          if ($mpirun =~ m,impi/+(\d+(?:\.\d+)+)/,o)
             {
               $version = $1;
             }
           elsif ($version =~ m/.*Version\s+(\S+)\s+Update\s+(\S+)\s+/io)
             {
               $version = "$1.$2";
+            }
+          elsif ($version =~ m/.*Version\s+(\S+)\s/io)
+            {
+              $version = $1;
             }
           last; 
         };
