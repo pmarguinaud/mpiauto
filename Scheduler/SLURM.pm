@@ -67,13 +67,13 @@ sub expand_nodelist
   
   my @nodelist;
   
-  if ($nodelist =~ m/^([\w-]+)$/o)
+  while ($nodelist)
     {   
-      @nodelist = ($nodelist);
-    }
-  else
-    {
-      while ($nodelist =~ s/^([\w-]+)\[([^\[\]]*)\],?//o)
+      if ($nodelist =~ s/^([\w-]+)(?:,|$)//o)
+        {   
+          push @nodelist, $1; 
+        }   
+      elsif ($nodelist =~ s/^([\w-]+)\[([^\[\]]*)\],?//o)
         {   
           my ($pref, $list) = ($1, $2);
           my @list = sort { $a <=> $b }
@@ -92,8 +92,8 @@ sub expand_nodelist
                        }   
                       split (m/,/o, $list);
           push @nodelist, map { "${pref}$_" } @list;
-        }   
-    }   
+        }
+    }
 
   return @nodelist;
 }
