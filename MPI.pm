@@ -558,9 +558,11 @@ sub wrap
         {
           use Storable;
           my $mpmd = &Storable::dclone ($_);
+
           my @cmd = (@{ $opts->{'prefix-command'} }, $mpmd->{bin}, @{ $mpmd->{args} });
-          $mpmd->{bin} = shift (@cmd);
-          $mpmd->{args} = \@cmd;
+
+          $mpmd->{cmd} = \@cmd;
+
           my ($rank1, $rank2) = ($rank, $rank + $mpmd->{np} - 1);
           my $rankid = $rank1 == $rank2 ? $rank1 : "$rank1-$rank2";
 
@@ -573,6 +575,8 @@ sub wrap
 
           $rank = $rank2 + 1;
         }
+
+      @{ $opts->{'prefix-command'} } = ();
     }
   else
     {

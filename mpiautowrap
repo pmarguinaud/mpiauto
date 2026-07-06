@@ -61,7 +61,7 @@ if (%{ $opts{exec} })
           {
             $exec = do ($exec);
             $ENV{OMP_NUM_THREADS} = $exec->{openmp};
-            my @exec = ($exec->{bin}, @{ $exec->{args} });
+            my @exec = @{ $exec->{cmd} };
             exec (@exec)
               or die ("Cannot exec @exec\n");
           }
