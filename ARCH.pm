@@ -1,5 +1,7 @@
 package ARCH;
 
+use Data::Dumper;
+
 use strict;
 
 my $uname;
@@ -67,7 +69,7 @@ sub ldd
 
   my ($class, %args) = @_;
 
-  my ($bin, $sym, $reload) = @args{qw (bin sym reload)};
+  my ($bin, $sym, $reload, $opts) = @args{qw (bin sym reload opts)};
 
   %ldd_cache = ()
     if ($reload);
@@ -90,7 +92,7 @@ sub ldd
     }
   else
     {
-      @ldd = $class->do_ldd ($bin);
+      @ldd = $class->do_ldd ($bin, $opts);
       $ldd_cache{$bin} = {ldd => [@ldd], stamp => $stamp};
     }
 
