@@ -2,15 +2,18 @@ package ARCH::Linux;
 
 use FileHandle;
 use POSIX qw (ceil floor);
+use Data::Dumper;
 
 use strict;
 use base qw (ARCH);
 
 sub do_ldd
 {
-  my ($class, $bin) = @_;
+  my ($class, $bin, $opts) = @_;
 
-  my @ldd = map { split (m/\s*=>\s*/o, $_) } grep { m/=>/o } split (m/\n/o, `ldd $bin`);
+  my $ce = $opts->{'container-exec'}; $ce = $ce ? "$ce " : "";
+
+  my @ldd = map { split (m/\s*=>\s*/o, $_) } grep { m/=>/o } split (m/\n/o, `$ce ldd $bin`);
   for (@ldd)
     {
       s/^\s*//o;
@@ -93,7 +96,7 @@ sub grokmpirun
 
   my ($ldd, $libmpi);
 
-  $ldd = $arch->ldd (bin => $bin, sym => 1);
+  $ldd = $arch->ldd (bin => $bin, sym => 1, opts => $opts);
 
   $libmpi ||= $ldd->{$_} for (@libmpi);
 
@@ -146,13 +149,15 @@ sub grokmpirun
 
   $version = do
     {
+      my $ce = $opts->{'container-exec'};
+      $ce = $ce ? "$ce ": "";
       local $ENV{PATH} = &dirname ($mpirun) . ":$ENV{PATH}";
-      `$mpirun --version 2>&1`;
+      `$ce $mpirun --version 2>&1`;
     };
 
   for ($version)
     {
-      m/\bOpen\s*MPI\b.*(\d+(?:\.\d+)+)/io 
+      m/\bOpen\s*MPI\b.*?(\d+(?:\.\d+)+\w*)/io 
         && do 
         { 
           $mpikind = 'OpenMPI';  
@@ -168,13 +173,17 @@ if (0) {
           $mpirun = $mpiexec
             if (-f $mpiexec); 
 }
-          if ($mpirun =~ m,impi/(\d+(?:\.\d+)+)/,o)
+          if ($mpirun =~ m,impi/+(\d+(?:\.\d+)+)/,o)
             {
               $version = $1;
             }
           elsif ($version =~ m/.*Version\s+(\S+)\s+Update\s+(\S+)\s+/io)
             {
               $version = "$1.$2";
+            }
+          elsif ($version =~ m/.*Version\s+(\S+)\s/io)
+            {
+              $version = $1;
             }
           last; 
         };

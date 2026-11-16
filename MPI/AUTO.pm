@@ -309,6 +309,9 @@ sub run
     [ GRPS, '',                      'UMPI options',                                                                                     ],
     [ ARGS, 'umpi-mpi-label',        'UMPI backend label',                                         0,                         '',   '=', ],
     [ BOOL, 'umpi-verbose',          'UMPI verbose',                                               0,                          0,    '', ],
+
+    [ GRPS, '',                      'Container',                                                                                        ],
+    [ ARGS, 'container-exec',        'Container script',                                           0,                         '',   '=', ],
   );
   
   my ($arch, $schd);
@@ -411,6 +414,10 @@ sub run
         }
     }
   
+  if ($opts->{'container-exec'})
+    {
+      push @{ $opts->{'prefix-command'} }, $opts->{'container-exec'};
+    }
   
   my $mpi = $mpiclass->new (opts => $opts, bin => $bin, args => \@args, arch => $arch, schd => $schd, mpmd => \@mpmd);
   
