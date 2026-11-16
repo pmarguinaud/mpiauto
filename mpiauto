@@ -257,9 +257,6 @@ on how threads and tasks should be bound. This works only on Linux,
 and the user has to call the function linux_bind after initializing MPI
 in his code.
 
-=item + C<--use-slurm-bind> : cpu masks are generated and passed to C<srun>;
-works only with Linux.
-
 =item + C<--use-openmpi-bind> : let OpenMPI handle the binding; it seems to 
 work almost by itself.
 

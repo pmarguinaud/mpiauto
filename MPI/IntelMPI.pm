@@ -11,6 +11,14 @@ sub mpirun_options
           {opt => '-ppn', val => $opts->{nnp}});
 }
 
+# Partial node: start the ranks with fork (single node), so that they inherit
+# the CPU set of mpiauto; the binding is done by linux_bind
+
+sub partial_node_env
+{
+  return (I_MPI_HYDRA_BOOTSTRAP => 'fork', I_MPI_PIN => 'off');
+}
+
 sub mpirank_variable_name
 {
   return ('PMI_RANK');

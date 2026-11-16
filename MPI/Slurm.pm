@@ -21,53 +21,12 @@ sub mpirun_options
               {opt => '--ntasks-per-node', val => $opts->{nnp}},
               '--kill-on-bad-exit=1', '--export=ALL');
 
-  if ($opts->{'use-slurm-bind'})
+# Partial node: let this step share the CPUs of the job with other steps,
+# without Slurm binding; masks are applied by linux_bind
+
+  if ($self->{arch}->partial_node ())
     {
-      $ENV{OMP_PROC_BIND} = 'true';
-      my $arch = $self->{arch};
-      my @bind = $arch->bind_node (tasks  => $opts->{nnp},    nodes   => $opts->{nn},
-                                   openmp => $opts->{openmp}, verbose => $opts->{'arch-bind-verbose'},
-                                   proc   => $opts->{proc});
-
-
-      if (@bind)
-        {
-# Convert binary mask to hexadecimal
-
-          my @mask_cpu;
-          for (@bind)
-            {
-              chomp;
-              my @mask = split (m/:/o, reverse ($_));
-              my @X;
-              for my $mask (@mask)
-                {
-                  my @x = split (m//o, $mask);
-                  for (0 .. $#x)
-                    {
-                      $X[$_] = $X[$_] || $x[$_] || 0;
-                    }
-                }
-              @X = (('0') x (scalar (@X) % 4), @X);
-     
-              my $mask_cpu = '0x';
-              while (@X)
-                {
-                  $mask_cpu .= sprintf ('%1.1X', 2 * (2 * (2 * $X[0] + $X[1]) + $X[2]) + $X[3]);
-                  splice (@X, 0, 4);
-                }
-              push @mask_cpu, $mask_cpu;
-            }
-     
-          for (@mask_cpu) 
-            {   
-              s/^0x0+/0x/o;
-            }
-     
-          push @opts, '--cpu_bind=mask_cpu:' . join (',', @mask_cpu);
-
-        }
-
+      push @opts, '--overlap', '--cpu-bind=none';
     }
 
   return @opts;
