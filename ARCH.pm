@@ -61,6 +61,13 @@ sub bind_node
   return ();
 }
 
+# The process may use only part of the node
+
+sub partial_node
+{
+  return 0;
+}
+
 my %ldd_cache;
 
 sub ldd

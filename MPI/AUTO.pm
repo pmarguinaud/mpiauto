@@ -252,7 +252,6 @@ sub run
     [ BOOL, 'use-mpi-machinefile',   'Generate machine file and use it',                           0,                          0,    '', ],  
            
     [ BOOL, 'mpi-stdin-null',        'Connect mpirun stdin to /dev/null',                          0,                          0,    '', ], 
-    [ BOOL, 'use-session',           'Allow mpiauto session mechanism',                            0,                          0,    '', ], 
     [ ARGS, 'init-timeout',          'Set a timeout on MPI_INIT',                                  0,                          0,   '=', ], 
     [ ARGS, 'init-timeout-restart',  'Number of times to restart after a MPI_INIT timeout',        0,                          0,   '=', ], 
     [ BOOL, 'init-timeout-control',  'Control MPI startup; if srun/mpirun fails to connect
@@ -294,13 +293,11 @@ sub run
     [ GRPS, '',                      'Slurm options',                                                                                    ],
     [ BOOL, 'use-slurm-mpi',         'Use Slurm MPI launcher when possible',                       0,                          1,    '', ],
     [ BOOL, 'fix-slurm-env',         'Fix Slurm environment',                                      0,                          1,    '', ],
-    [ BOOL, 'fix-slurm-env-nodes',   'Fix Slurm environment; set node number and list variables',  0,                          1,    '', ],
         
     [ GRPS, '',                      'Grib API options',                                                                                 ],
     [ BOOL, 'setup-grib_api-env',    'Setup grib_api environment from ldd info',                   0,                          1,    '', ],
         
     [ GRPS, '',                      'Binding options',                                                                                  ],
-    [ BOOL, 'use-slurm-bind',        'Use Slurm binding',                                          0,                          0,    '', ],
     [ BOOL, 'use-arch-bind',         'Generate a configuration file for binding',                  0,                          0,    '', ],
     [ BOOL, 'arch-bind-verbose',     'Print binding file',                                         0,                          0,    '', ],
     [ BOOL, 'use-openmpi-bind',      'Let OpenMPI handle the binding',                             0,                          0,    '', ],

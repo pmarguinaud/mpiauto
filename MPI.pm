@@ -71,6 +71,13 @@ sub spawn
   exec ("exec $cmd")
     unless ($$pid);
 
+# Forward USR1, USR2 and TERM to the MPI launcher (mpirun/srun), and keep on
+# waiting for it; these handlers are reset to their defaults by exec in the
+# child (unlike IGNORE, which would be inherited)
+
+  local $SIG{USR1} = sub { kill ('USR1', $$pid) if ($$pid) };
+  local $SIG{USR2} = sub { kill ('USR2', $$pid) if ($$pid) };
+  local $SIG{TERM} = sub { kill ('TERM', $$pid) if ($$pid) };
 
   waitpid ($$pid, 0);
 
@@ -326,6 +333,25 @@ sub do_run
                $ENV{$var} = $env{$var};
              }
          }
+    }
+
+# Partial node: this process may use only part of the node (numactl, taskset);
+# override the MPI environment so that the MPI launcher stays within it
+
+  if ($arch->partial_node ())
+    {
+      die ("A restricted CPU set (partial node) is supported on a single node only\n")
+        if (($opts->{nn} > 1) || grep { $_->{nn} > 1 } @$mpmd);
+
+      my %penv = $self->partial_node_env ();
+
+      if ($opts->{verbose})
+        {
+          printf ($MPI::FMT1, 'Remark', 'Partial node, MPI environment was modified');
+          printf ($MPI::FMT3, $_, "'$penv{$_}'") for (sort keys (%penv));
+        }
+
+      @ENV{keys (%penv)} = values (%penv);
     }
 
 # Get mpi arguments
@@ -597,6 +623,13 @@ sub wrap
 sub collectenv
 {
   return {};
+}
+
+# Environment variables to set when the process may use only part of the node
+
+sub partial_node_env
+{
+  return ();
 }
 
 sub setup_env

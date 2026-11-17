@@ -258,21 +258,145 @@ sub uniq
   return sort { $x{$a} <=> $x{$b} } keys (%x);
 }
 
+# Parse a Linux CPU list ("0-3,8,10-11") into a list of CPU numbers
+
+sub parse_cpulist
+{
+  my $str = shift;
+  my @l;
+  return @l unless (defined ($str));
+  $str =~ s/\s+//go;
+  for my $r (split (m/,/o, $str))
+    {
+      if ($r =~ m/^(\d+)-(\d+)$/o)
+        {
+          push @l, ($1 .. $2);
+        }
+      elsif ($r =~ m/^(\d+)$/o)
+        {
+          push @l, $1;
+        }
+    }
+  return @l;
+}
+
+sub slurp
+{
+  my $f = shift;
+  my $fh = 'FileHandle'->new ("<$f");
+  return unless ($fh);
+  local $/ = undef;
+  my $s = <$fh>;
+  $s =~ s/\s+$//o if (defined ($s));
+  return $s;
+}
+
+# CPUs this process may run on (its affinity mask), from /proc/self/status
+
+sub allowed_cpus
+{
+  my $status = &slurp ('/proc/self/status');
+  return unless (defined ($status));
+  my ($list) = ($status =~ m/^Cpus_allowed_list:\s*(\S+)/mo);
+  return &parse_cpulist ($list);
+}
+
+# All online CPUs of the node
+
+sub online_cpus
+{
+  return &parse_cpulist (&slurp ('/sys/devices/system/cpu/online'));
+}
+
+# The process may use only part of the node (numactl, taskset, cpuset)
+
+sub partial_node
+{
+  my $class = shift;
+  my @allowed = &allowed_cpus ();
+  my @online  = &online_cpus ();
+  return 0 unless (@allowed && @online);
+  return scalar (@allowed) < scalar (@online) ? 1 : 0;
+}
+
+# Topology of the allowed CPUs: a list of cores, each core being the list of
+# its allowed hardware threads (OS CPU numbers, sorted). Cores are sorted by
+# their first allowed CPU. Returns nothing if sysfs is not available.
+
+sub allowed_cores
+{
+  my @allowed = &allowed_cpus ();
+  return unless (@allowed);
+
+  my %core;
+  for my $cpu (@allowed)
+    {
+      my $t = "/sys/devices/system/cpu/cpu$cpu/topology";
+      my $pkg  = &slurp ("$t/physical_package_id");
+      my $core = &slurp ("$t/core_id");
+      return unless (defined ($pkg) && defined ($core));
+      push @{ $core{"$pkg:$core"} }, $cpu;
+    }
+
+  my @cores = map { [sort { $a <=> $b } @$_] } values (%core);
+  @cores = sort { $a->[0] <=> $b->[0] } @cores;
+
+  return @cores;
+}
+
+sub read_proc_conf
+{
+  my ($class, %opts) = @_;
+  my $conf;
+  for my $dir ($MPI::AUTO::BASEDIR, "$ENV{HOME}/.mpiautorc")
+    {
+      $conf = "$dir/$opts{proc}.conf";
+      last if (-f $conf);
+    }
+  return -f $conf ? do ($conf) : undef;
+}
+
+# Returns a hash describing the CPUs available to the job:
+#  ncpus          : number of cores
+#  nthreadpercore : number of hardware threads used per core
+#  map            : (optional) map->[$core][$thread] = OS CPU number; when
+#                   absent, CPU numbers follow the usual numbering
+#                   (thread * ncpus + core)
+#  width          : (optional) length of the masks written in linux_bind.txt
+#
+# When the process may use the whole node and a processor description is
+# given (--proc), this description is used unchanged. Otherwise, the
+# topology is taken from /proc/self/status and sysfs; --proc then only caps
+# the number of hardware threads used per core.
+
 sub cpuinfo
 {
   my ($class, %opts) = @_;
 
-  if ($opts{proc})
+  my $conf = $opts{proc} ? $class->read_proc_conf (%opts) : undef;
+
+  return $conf
+    if ($conf && (! $class->partial_node ()));
+
+  my @cores = &allowed_cores ();
+
+  if (@cores)
     {
-      my $conf;
-      for my $dir ($MPI::AUTO::BASEDIR, "$ENV{HOME}/.mpiautorc")
-        {
-          $conf = "$dir/$opts{proc}.conf";
-          last if (-f $conf);
-        }
-      my $cpuinfo = -f $conf ? do ($conf) : undef;
-      return $cpuinfo;
+      my ($ntpc) = sort { $a <=> $b } map { scalar (@$_) } @cores;
+      $ntpc = $conf->{nthreadpercore}
+        if ($conf && $conf->{nthreadpercore} && ($conf->{nthreadpercore} < $ntpc));
+
+      my ($max) = sort { $b <=> $a } map { @{$_}[0 .. $ntpc-1] } @cores;
+
+      return {
+               nthreadpercore => $ntpc,
+               ncpus          => scalar (@cores),
+               map            => [map { [@{$_}[0 .. $ntpc-1]] } @cores],
+               width          => $max + 1,
+             };
     }
+
+  return $conf if ($conf);
 
   my @cpuinfo = do { my $fh = 'FileHandle'->new ('</proc/cpuinfo'); <$fh> };
   chomp for (@cpuinfo);
@@ -286,10 +410,41 @@ sub cpuinfo
   @core_id     = &uniq (@core_id);
 
   return {
-           nthreadpercore => scalar (@processor) / (scalar (@core_id) * scalar (@core_id)),
-           ncpus          => scalar (@core_id) * scalar (@core_id),
+           nthreadpercore => scalar (@processor) / (scalar (@physical_id) * scalar (@core_id)),
+           ncpus          => scalar (@physical_id) * scalar (@core_id),
            nsockets       => scalar (@physical_id),
          };
+}
+
+# Convert a mask over "virtual" CPUs (thread * ncpus + core) into a mask over
+# OS CPU numbers, using the map built by cpuinfo
+
+sub map_mask
+{
+  my ($class, $cpuinfo, $mask) = @_;
+
+  return $mask unless ($cpuinfo->{map});
+
+  my $ncpus = $cpuinfo->{ncpus};
+  my @x = ('0') x $cpuinfo->{width};
+
+  my @v = split (m//o, $mask);
+  for my $v (grep { $v[$_] ne '0' } (0 .. $#v))
+    {
+      my $core   = $v % $ncpus;
+      my $thread = int ($v / $ncpus);
+      $x[$cpuinfo->{map}[$core][$thread]] = '1';
+    }
+
+  return join ('', @x);
+}
+
+sub map_line
+{
+  my ($class, $cpuinfo, $line) = @_;
+  return $line unless ($cpuinfo->{map});
+  chomp (my $l = $line);
+  return join (':', map { $class->map_mask ($cpuinfo, $_) } split (m/:/o, $l)) . "\n";
 }
 
 sub start_verbose
@@ -338,7 +493,7 @@ sub bind : method
   die ("Could not retrieve cpuinfo\n")
     unless ($cpuinfo);
 
-  my $nthreads = $cpuinfo->{ncpus} * $cpuinfo->{nthreadpercore};
+  my $nthreads = $cpuinfo->{width} || ($cpuinfo->{ncpus} * $cpuinfo->{nthreadpercore});
 
   my $fh = 'FileHandle'->new (($opts{append} ? '>>' : '>') . 'linux_bind.txt');
   $class->start_verbose ($cpuinfo, $nthreads, %opts);
@@ -398,6 +553,9 @@ sub ht_level
   return 0;
 }
 
+# Masks per task (one line per task, one mask per OpenMP thread, separated
+# by colons), over OS CPU numbers
+
 sub bind_node
 {
   my ($class, %opts) = @_;
@@ -406,6 +564,17 @@ sub bind_node
 
   die ("Could not retrieve cpuinfo\n")
     unless ($cpuinfo);
+
+  return map { $class->map_line ($cpuinfo, $_) } $class->bind_node_virtual (%opts, cpuinfo => $cpuinfo);
+}
+
+# Same as bind_node, but masks are over virtual CPUs (thread * ncpus + core)
+
+sub bind_node_virtual
+{
+  my ($class, %opts) = @_;
+
+  my $cpuinfo = $opts{cpuinfo};
 
 
   my $cpuspertask  = $cpuinfo->{ncpus} / $opts{tasks};
@@ -474,7 +643,9 @@ sub nobind
 
   for my $task (1 .. $opts{tasks})
     {   
-      push @line, join (':', map { 1 } (1 .. $opts{openmp})) . "\n";
+      # No binding: each thread may run on all the CPUs of the job
+      my $all = '1' x ($opts{cpuinfo}{ncpus} * $opts{cpuinfo}{nthreadpercore});
+      push @line, join (':', map { $all } (1 .. $opts{openmp})) . "\n";
 
     }   
 

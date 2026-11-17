@@ -2,63 +2,11 @@ package Scheduler::SLURM;
 
 use strict;
 use base qw (Scheduler);
-use MPI::AUTO::Session;
 use List::Util qw (uniq);
 
 sub jobid
 {
   $ENV{SLURM_JOBID};
-}
-
-sub find_free_nodes
-{
-  my ($class, %args) = @_;
-
-  my $nn = $args{nn};
-
-  my @nodelist = $class->expand_nodelist ($ENV{SLURM_NODELIST});
-
-  my $jobid = $class->jobid ();
-
-  my $session = $args{session} 
-              ? 'MPI::AUTO::Session'->open (jobid => $jobid) 
-              : 'MPI::AUTO::Session'->empty ();
-
-  my @nn = grep { ! $session->{data}{nodes}{$_} } @nodelist;
-
-  if (scalar (@nn) < $nn)
-    {
-      if (@nn)
-        {
-          die ("Unable to find $nn nodes; list of available nodes is : @nn\n")
-        }
-      else
-       {
-          die ("Unable to find $nn nodes; no nodes are available\n");
-       }
-    }
-
-  @nn = @nn[0..$nn-1];
-
-  @{ $session->{data}{nodes} }{@nn} = (1) x scalar (@nn);
-
-  $session->close ();
-
-  return @nn;
-}
-
-sub free_used_nodes
-{
-  my $class = shift;
-
-  my $jobid = $class->jobid ();
-
-  my $session = 'MPI::AUTO::Session'->open (jobid => $jobid);
-
-  my @nn = $class->expand_nodelist ($ENV{SLURM_NODELIST});
-  @{ $session->{data}{nodes} }{@nn} = (0) x scalar (@nn);
-
-  $session->close ();
 }
 
 sub expand_nodelist
@@ -259,12 +207,15 @@ sub setup_env
   $env1{SLURM_NPROCS} = $np;
   $env1{SLURM_TASKS_PER_NODE} = join (',', "$opts->{nnp}(x$opts->{nn})", map { "$_->{nnp}(x$_->{nn})" } @$mpmd);
 
-  if ($opts->{'use-session'} || $opts->{'fix-slurm-env-nodes'})
-    {
-      $env1{SLURM_NNODES} = $env1{SLURM_JOB_NUM_NODES} = $nn;
-      my @nodelist = $class->find_free_nodes (nn => $nn, session => $opts->{'use-session'});
-      $env1{SLURM_NODELIST} = $env1{SLURM_JOB_NODELIST} = $class->compact_nodelist (@nodelist);
-    }
+  # Use the first $nn nodes of the allocation
+  {
+    my @nodelist = $class->expand_nodelist ($ENV{SLURM_NODELIST});
+    die ("Unable to find $nn nodes; list of available nodes is : @nodelist\n")
+      if (scalar (@nodelist) < $nn);
+    @nodelist = @nodelist[0 .. $nn-1];
+    $env1{SLURM_NNODES} = $env1{SLURM_JOB_NUM_NODES} = $nn;
+    $env1{SLURM_NODELIST} = $env1{SLURM_JOB_NODELIST} = $class->compact_nodelist (@nodelist);
+  }
   delete $env1{SLURM_CPUS_PER_TASK};
 
 
@@ -312,11 +263,6 @@ sub cleanup_env
   my ($class, %args) = @_;
 
   my ($opts) = @args{qw (opts)};
-
-  if ($opts->{'use-session'})
-    {
-      $class->free_used_nodes ();
-    }
 
 }
 
