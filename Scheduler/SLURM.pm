@@ -2,11 +2,22 @@ package Scheduler::SLURM;
 
 use strict;
 use base qw (Scheduler);
-use List::Util qw (uniq);
 
 sub jobid
 {
   $ENV{SLURM_JOBID};
+}
+
+sub uniq
+{
+  my (%seen, $seen_undef);
+
+  my @uniq = grep
+    {
+      defined ($_) ? (! $seen{$_}++) : (! $seen_undef++)
+    } @_;
+
+  return wantarray ? @uniq : scalar (@uniq);
 }
 
 sub expand_nodelist
